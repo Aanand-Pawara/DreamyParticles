@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Interactive Particle Simulation">
+    <title>Dreamy Particles | Release</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --glass: rgba(20, 20, 25, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text: #fff;
+            --accent: #ff9a9e;
+            --accent-hover: #ffb4b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0a0a0a;
+            font-family: 'Nunito', sans-serif;
+            color: var(--text);
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Branding Styles */
+        .branding {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--glass);
+            padding: 8px 16px;
+            border-radius: 50px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s ease, background 0.2s;
+        }
+
+        .branding:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.02);
+        }
+
+        .branding-text {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .github-icon {
+            width: 20px;
+            height: 20px;
+            fill: #fff;
+            transition: fill 0.2s;
+        }
+
+        .branding:hover .github-icon {
+            fill: var(--accent);
+        }
+
+        .branding a {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* Existing UI Styles */
+        .toggle-ui {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+        }
+
+        .toggle-ui:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+        }
+
+        .ui-container {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            width: 280px;
+            background: var(--glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            z-index: 10;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-height: calc(100vh - 90px);
+            overflow-y: auto;
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .ui-container.hidden {
+            opacity: 0;
+            transform: translateY(-10px) scale(0.95);
+            pointer-events: none;
+        }
+
+        .ui-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        h1 {
+            font-size: 16px;
+            margin: 0;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            appearance: none;
+            outline: none;
+            margin: 10px 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s;
+            box-shadow: 0 0 10px rgba(255, 154, 158, 0.5);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            font-family: inherit;
+            margin-bottom: 8px;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .shape-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        button.active {
+            background: var(--accent);
+            color: #111;
+            border-color: var(--accent);
+            box-shadow: 0 4px 12px rgba(255, 154, 158, 0.3);
+        }
+
+        .mode-select {
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px;
+            border-radius: 8px;
+            gap: 4px;
+        }
+
+        .mode-option {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.6);
+            transition: all 0.2s;
+        }
+
+        .mode-option.selected {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .ui-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .ui-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .ui-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Branding Section -->
+    <div class="branding">
+        <a href="https://github.com/AanandPawara" target="_blank" rel="noopener noreferrer">
+            <svg class="github-icon" viewBox="0 0 24 24">
+                <path
+                    d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405 1.02 0 2.04.135 3 .405 2.28-1.56 3.285-1.23 3.285-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.285 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+            </svg>
+            <span class="branding-text">@AanandPawara</span>
+        </a>
+    </div>
+
+    <button class="toggle-ui" id="toggleBtn" aria-label="Toggle Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+
+    <canvas id="canvas"></canvas>
+
+    <div class="ui-container" id="ui">
+        <div class="ui-header">
+            <h1>Particle Lab</h1>
+        </div>
+
+        <div class="control-group">
+            <input type="text" id="textInput" placeholder="Enter text..." maxlength="10" autocomplete="off">
+            <button style="width:100%" onclick="setShape('text')">Rasterize Text</button>
+        </div>
+
+        <div class="control-group">
+            <label>Mouse Interaction</label>
+            <div class="mode-select">
+                <div class="mode-option selected" onclick="setMode('repulse')">Push</div>
+                <div class="mode-option" onclick="setMode('attract')">Pull</div>
+                <div class="mode-option" onclick="setMode('swirl')">Swirl</div>
+            </div>
+            <div style="font-size: 10px; margin-top: 8px; color: var(--accent); opacity: 0.8; text-align: center;">
+                Click anywhere to Bomb
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Shape Presets</label>
+            <div class="shape-grid">
+                <button onclick="setShape('heart')" id="btn-heart">Heart</button>
+                <button onclick="setShape('circle')" id="btn-circle">Ring</button>
+                <button onclick="setShape('saturn')" id="btn-saturn">Saturn</button>
+                <button onclick="setShape('star')" id="btn-star">Star</button>
+                <button onclick="setShape('spiral')" id="btn-spiral">Spiral</button>
+                <button onclick="setShape('flower')" id="btn-flower">Flower</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Count: <span id="val-count">2000</span></label>
+            <input type="range" id="inp-count" min="100" max="8000" step="100" value="2000">
+        </div>
+
+        <div class="control-group">
+            <label>Particle Size</label>
+            <input type="range" id="inp-size" min="1" max="5" step="0.5" value="2">
+        </div>
+
+        <div class="control-group">
+            <label>Fluidity</label>
+            <input type="range" id="inp-speed" min="0.01" max="0.3" step="0.01" value="0.08">
+        </div>
+
+        <div class="control-group">
+            <label>Radius</label>
+            <input type="range" id="inp-radius" min="50" max="400" step="10" value="120">
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+
+        let width, height;
+        let particles = [];
+        let currentShape = 'heart';
+        let interactionMode = 'repulse';
+        let isMouseDown = false;
+        let animationFrameId;
+        let time = 0;
+
+        const mouse = { x: -9999, y: -9999, active: false };
+        const bomb = { x: 0, y: 0, active: false, radius: 0, maxRadius: 300, strength: 50 };
+
+        const config = {
+            particleCount: 2000,
+            friction: 0.93,
+            ease: 0.08,
+            repulsionRadius: 120,
+            repulsionForce: 5,
+            particleSize: 2,
+            baseColor: { h: 340, s: 80, l: 60 },
+            colorVariation: 40,
+            highDPI: true
+        };
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = 0;
+                this.vy = 0;
+                this.tx = this.x;
+                this.ty = this.y;
+                // Base target for rotation calculations
+                this.bx = 0;
+                this.by = 0;
+                this.color = '#fff';
+                this.scale = Math.random() * 0.5 + 0.5;
+            }
+
+            update() {
+                const dx = this.tx - this.x;
+                const dy = this.ty - this.y;
+
+                this.vx += dx * config.ease;
+                this.vy += dy * config.ease;
+
+                if (mouse.active) {
+                    const dxM = this.x - mouse.x;
+                    const dyM = this.y - mouse.y;
+                    const distSq = dxM * dxM + dyM * dyM;
+                    const radSq = config.repulsionRadius * config.repulsionRadius;
+
+                    if (distSq < radSq) {
+                        const dist = Math.sqrt(distSq);
+                        const force = (1 - dist / config.repulsionRadius);
+
+                        let power = config.repulsionForce * force;
+                        if (interactionMode === 'attract') {
+                            this.vx -= (dxM / dist) * power;
+                            this.vy -= (dyM / dist) * power;
+                        } else if (interactionMode === 'swirl') {
+                            power *= 2;
+                            this.vx -= (dyM / dist) * power;
+                            this.vy += (dxM / dist) * power;
+                        } else { // repulse
+                            this.vx += (dxM / dist) * power;
+                            this.vy += (dyM / dist) * power;
+                        }
+                    }
+                }
+
+                if (bomb.active) {
+                    const dxB = this.x - bomb.x;
+                    const dyB = this.y - bomb.y;
+                    const distSqB = dxB * dxB + dyB * dyB;
+
+                    if (distSqB < bomb.maxRadius * bomb.maxRadius) {
+                        const distB = Math.sqrt(distSqB);
+                        const force = (1 - distB / bomb.maxRadius) * bomb.strength;
+                        this.vx += (dxB / distB) * force;
+                        this.vy += (dyB / distB) * force;
+                    }
+                }
+
+                this.vx *= config.friction;
+                this.vy *= config.friction;
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                const size = config.particleSize * this.scale;
+                ctx.fillRect(this.x, this.y, size, size);
+            }
+        }
+
+        function init() {
+            resize();
+            createParticles();
+            setShape('heart');
+            animate();
+
+            const ui = document.getElementById('ui');
+            const toggle = document.getElementById('toggleBtn');
+            toggle.addEventListener('click', () => {
+                ui.classList.toggle('hidden');
+                const isHidden = ui.classList.contains('hidden');
+                toggle.innerHTML = isHidden
+                    ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>'
+                    : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>';
+            });
+        }
+
+        function createParticles() {
+            if (particles.length < config.particleCount) {
+                const toAdd = config.particleCount - particles.length;
+                for (let i = 0; i < toAdd; i++) particles.push(new Particle());
+            } else if (particles.length > config.particleCount) {
+                particles.splice(config.particleCount);
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.35)';
+            ctx.fillRect(0, 0, width, height);
+
+            time += 0.01; // Animation speed
+
+            // Update rotation for Saturn
+            if (currentShape === 'saturn') {
+                const cx = width / 2;
+                const cy = height / 2;
+                const cosT = Math.cos(0.01);
+                const sinT = Math.sin(0.01);
+
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    // Rotate the base coordinates
+                    const nx = p.bx * cosT - p.by * sinT;
+                    const ny = p.bx * sinT + p.by * cosT;
+                    p.bx = nx;
+                    p.by = ny;
+                    p.tx = cx + nx;
+                    p.ty = cy + ny;
+                }
+            }
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+
+            if (bomb.active) bomb.active = false;
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function setShape(type) {
+            currentShape = type;
+            document.querySelectorAll('.shape-grid button').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById(`btn-${type}`);
+            if (btn) btn.classList.add('active');
+
+            const cx = width / 2;
+            const cy = height / 2;
+            const count = particles.length;
+            let getPos;
+
+            // Reset base offsets
+            for (let p of particles) { p.bx = 0; p.by = 0; }
+
+            switch (type) {
+                case 'heart':
+                    config.baseColor = { h: 340, s: 80, l: 65 };
+                    getPos = (i) => {
+                        const t = (i / count) * Math.PI * 2;
+                        const s = Math.min(width, height) / 30;
+                        return {
+                            x: s * 16 * Math.pow(Math.sin(t), 3),
+                            y: -s * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))
+                        };
+                    };
+                    break;
+                case 'circle':
+                    config.baseColor = { h: 190, s: 70, l: 60 };
+                    getPos = (i) => {
+                        const a = (i / count) * Math.PI * 2;
+                        const r = (Math.min(width, height) / 3) + (Math.random() * 40 - 20);
+                        return { x: Math.cos(a) * r, y: Math.sin(a) * r };
+                    }
+                    break;
+                case 'saturn':
+                    config.baseColor = { h: 35, s: 90, l: 60 }; // Gold/Orange base
+                    const R = Math.min(width, height) / 4;
+                    getPos = (i) => {
+                        // 40% particles for Body, 60% for Rings
+                        if (i < count * 0.4) {
+                            // Planet Body (Sphere projection)
+                            const angle = Math.random() * Math.PI * 2;
+                            const r = Math.sqrt(Math.random()) * R;
+                            return {
+                                x: Math.cos(angle) * r,
+                                y: Math.sin(angle) * r,
+                                color: `hsla(${30 + Math.random() * 20}, 80%, 60%, 0.9)`
+                            };
+                        } else {
+                            // Rings (Ellipses)
+                            const angle = (i / (count * 0.6)) * Math.PI * 2 * 3; // multiple loops
+                            const dist = R * (1.4 + Math.random() * 0.8); // 1.4R to 2.2R
+                            return {
+                                x: Math.cos(angle) * dist,
+                                y: Math.sin(angle) * dist * 0.3, // Flattened Y
+                                color: `hsla(${190 + Math.random() * 40}, 70%, 70%, 0.8)` // Icy rings
+                            };
+                        }
+                    }
+                    break;
+                case 'star':
+                    config.baseColor = { h: 45, s: 90, l: 60 };
+                    getPos = (i) => {
+                        const a = (i / count) * Math.PI * 2 * 5;
+                        const r = (Math.min(width, height) / 2.5) * (0.5 + 0.5 * Math.sin(a * 0.5));
+                        const sa = (i / count) * Math.PI * 2;
+                        return { x: Math.cos(sa) * r, y: Math.sin(sa) * r };
+                    }
+                    break;
+                case 'spiral':
+                    config.baseColor = { h: 280, s: 80, l: 70 };
+                    getPos = (i) => {
+                        const a = i * 0.1;
+                        const r = Math.min((4 * a), Math.min(width, height) / 2.2);
+                        return { x: Math.cos(a) * r, y: Math.sin(a) * r };
+                    }
+                    break;
+                case 'flower':
+                    config.baseColor = { h: 300, s: 70, l: 70 };
+                    getPos = (i) => {
+                        const a = (i / count) * Math.PI * 2;
+                        const r = (Math.min(width, height) / 3) * Math.abs(Math.cos(a * 2.5));
+                        return { x: Math.cos(a) * r, y: Math.sin(a) * r };
+                    }
+                    break;
+                case 'text':
+                    processTextShape();
+                    return;
+            }
+
+            // Apply calculated positions
+            for (let i = 0; i < count; i++) {
+                const pos = getPos(i);
+                // Store base relative position for rotation
+                particles[i].bx = pos.x;
+                particles[i].by = pos.y;
+                particles[i].tx = cx + pos.x;
+                particles[i].ty = cy + pos.y;
+
+                // Set color (custom or base)
+                if (pos.color) {
+                    particles[i].color = pos.color;
+                } else {
+                    const h = config.baseColor.h + (Math.random() * config.colorVariation - config.colorVariation / 2);
+                    particles[i].color = `hsla(${h}, ${config.baseColor.s}%, ${config.baseColor.l}%, 0.9)`;
+                }
+            }
+        }
+
+        function processTextShape() {
+            const txt = document.getElementById('textInput').value || "Dream";
+            const oc = document.createElement('canvas');
+            const octx = oc.getContext('2d');
+            oc.width = width;
+            oc.height = height;
+            octx.fillStyle = '#fff';
+            octx.font = '900 20vw Nunito, sans-serif';
+            octx.textAlign = 'center';
+            octx.textBaseline = 'middle';
+            octx.fillText(txt, width / 2, height / 2);
+
+            const data = octx.getImageData(0, 0, width, height).data;
+            const coords = [];
+            const step = 4;
+
+            for (let y = 0; y < height; y += step) {
+                for (let x = 0; x < width; x += step) {
+                    if (data[(y * width + x) * 4 + 3] > 128) coords.push({ x: x - width / 2, y: y - height / 2 });
+                }
+            }
+
+            if (coords.length === 0) { setShape('circle'); return; }
+
+            config.baseColor = { h: 170, s: 70, l: 60 };
+            for (let i = 0; i < particles.length; i++) {
+                const t = coords[i % coords.length];
+                particles[i].bx = t.x;
+                particles[i].by = t.y;
+                particles[i].tx = width / 2 + t.x;
+                particles[i].ty = height / 2 + t.y;
+                const h = config.baseColor.h + Math.random() * 40;
+                particles[i].color = `hsla(${h}, ${config.baseColor.s}%, ${config.baseColor.l}%, 0.9)`;
+            }
+        }
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            if (currentShape === 'text') processTextShape();
+            else setShape(currentShape);
+        }
+
+        window.setMode = (m) => {
+            interactionMode = m;
+            document.querySelectorAll('.mode-option').forEach(el => el.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+
+        window.addEventListener('resize', resize);
+
+        window.addEventListener('mousemove', e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.active = true;
+        });
+
+        window.addEventListener('mousedown', e => {
+            isMouseDown = true;
+            bomb.x = e.clientX;
+            bomb.y = e.clientY;
+            bomb.active = true;
+        });
+
+        window.addEventListener('mouseup', () => isMouseDown = false);
+
+        window.addEventListener('touchmove', e => {
+            e.preventDefault();
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+            mouse.active = true;
+        }, { passive: false });
+
+        window.addEventListener('touchstart', e => {
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+            bomb.x = mouse.x;
+            bomb.y = mouse.y;
+            bomb.active = true;
+        });
+
+        document.getElementById('inp-count').addEventListener('input', e => {
+            config.particleCount = parseInt(e.target.value);
+            document.getElementById('val-count').innerText = config.particleCount;
+            createParticles();
+            if (currentShape === 'text') processTextShape(); else setShape(currentShape);
+        });
+
+        document.getElementById('inp-size').addEventListener('input', e => config.particleSize = parseFloat(e.target.value));
+        document.getElementById('inp-speed').addEventListener('input', e => config.ease = parseFloat(e.target.value));
+        document.getElementById('inp-radius').addEventListener('input', e => config.repulsionRadius = parseInt(e.target.value));
+        document.getElementById('textInput').addEventListener('keydown', e => { if (e.key === 'Enter') setShape('text'); });
+
+        init();
+    </script>
+</body>
+
+</html>
